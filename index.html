@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale = 1.0" />
+        <title>Círculos num Retângulo</title>
+
+        <!-- Estilo -->
+        <link rel="stylesheet" href="style/style.css" />
+
+        <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+        <script
+            src="https://code.jquery.com/ui/1.12.1/jquery-ui.min.js"
+            integrity="sha256-VazP97ZCwtekAsvgPBSUwPFKdrwD3unUfSGVYrahUqU="
+            crossorigin="anonymous"
+        ></script>
+    </head>
+
+    <body>
+        <div id="cont" class="center">
+            <h1 class="font center" id="canvasInfo">
+                Canvas: <span id="dimension"></span>
+                <br/>
+                Aspect ratio <span id="aspect"></span>
+            </h1>
+            <br/><br/><br/>
+            <canvas id="canvas" class="rectangle"></canvas>
+            <br/>
+            <p class="slider center" id="sliderInfo">
+                <span id="slider"></span> &#8729; &le;
+                <span id="squareDist"></span>
+            </p>
+            <form id="form" class="center" method="post">
+                <input type="range" min="1" max="100" value="1" step="1" id="n" name="n" style="width: 640px; align: center" oninput="save();"/>
+            </form>
+            <div class="obs">
+                <h4 style="color:#057603">(Observable)</h4>
+            </div>
+        </div>
+
+        <script src="script/cookies.js"></script>
+        <script src="script/LCG.js"></script>
+        <script type="module">
+
+            window.save = save;
+            let previousValue = getCookie("ncircles");
+            if (previousValue != "") $("#n").val(previousValue);
+            else $("#n").val(40);
+
+            const queryString = window.location.search;
+            const urlParams = new URLSearchParams(queryString);
+            var width = urlParams.get("w");
+            var height = urlParams.get("h");
+            if(width == null || height == null){
+                width = 640;
+                height = 480;
+                urlParams.set("w", width);
+                urlParams.set("h", height);
+                let newURL = `${window.location.href}?${urlParams}`;
+                window.location.href = newURL;
+            }
+
+            var canvas = document.getElementById("canvas");
+            canvas.height = height;
+            canvas.width = width;
+            var aspect = height/width;
+
+            var container = document.getElementById("cont");
+            container.setAttribute("style", `width: ${width.toString} px`)
+
+            $("#dimension ").html(`(${width}x${height})`)
+            $(" #aspect ").html(`= ${aspect}`)
+
+            getDimension();
+
+
+            function save(){
+                let n = $("#n")[0].valueAsNumber;
+                setCookie("ncircles", n, 2);
+                getDimension();
+            }
+
+            function getDimension() {
+                var canvas = document.getElementById("canvas");
+                var ctx = canvas.getContext("2d");
+                var ncircles = $("#n")[0].valueAsNumber;
+                const w = canvas.width;
+                const h = canvas.height;
+                const n = ncircles;
+
+                const ratio = w/h;
+                const cols = Math.sqrt(n * ratio);
+                const rows = Math.ceil(n / cols);
+
+                // Melhor opção preenchendo altura
+                {
+                    let rows_aux = Math.ceil(rows);
+                    let cols_aux = Math.ceil(n / rows_aux);
+
+                    if(rows_aux * ratio < cols_aux){
+                    const rowsRatio = cols_aux  / (rows_aux * ratio);
+                    rows_aux = Math.ceil(rows_aux * rowsRatio);
+                    cols_aux = Math.ceil(n / rows_aux);
+                    }
+
+                    var fullHeightSide = h / rows_aux;
+                }
+
+                // Melhor opção preenchendo largura
+                {
+                    let cols_aux = Math.ceil(cols);
+                    let rows_aux = Math.ceil(n / cols_aux);
+
+                    if(rows_aux * ratio > cols_aux){
+                    const colsRatio = (rows_aux * ratio) / cols_aux;
+                    cols_aux = Math.ceil(cols_aux * colsRatio);
+                    rows_aux = Math.ceil(n / cols_aux);
+                    }
+
+                    var fullWidthSide = w / cols_aux;
+                }
+
+                // Finalmente
+                let squareSide = Math.max(fullHeightSide, fullWidthSide);
+                $("#slider").html(`${ncircles}`)
+                $("#squareDist").html(`(${Math.floor(h/squareSide)}x${Math.floor(w/squareSide)})`)
+
+                // My solution is identical to the code below...
+                let perRow = Math.floor(canvas.width / squareSide)
+                let circleRadius = squareSide / 4;
+                ctx.clearRect(0,0,canvas.width,canvas.height);
+                ctx.fillStyle = "black";
+                ctx.strokeStyle = "gray";
+                for (let i = 0; i < ncircles; i++) {
+                    let row = Math.floor(i/perRow);
+                    let col = i % perRow;
+                    let x = circleRadius * 2 + circleRadius*4*col;
+                    let y = circleRadius * 2 + circleRadius*4*row;
+                    ctx.beginPath ();
+                    ctx.arc (x,y,circleRadius,0,Math.PI*2)
+                    ctx.fill()
+                    ctx.beginPath ();
+                    ctx.moveTo(x-squareSide/2,y-squareSide/2);
+                    ctx.lineTo(x-squareSide/2,y+squareSide/2);
+                    ctx.lineTo(x+squareSide/2,y+squareSide/2);
+                    ctx.lineTo(x+squareSide/2,y-squareSide/2);
+                    ctx.closePath();
+                    ctx.stroke()
+                }
+            }
+
+            dragAndSave(".rectangle");
+
+        </script>
+    </body>
+</html>
